@@ -1,3 +1,5 @@
+import time
+
 STITCHJOB_STATE_READY = 0
 STITCHJOB_STATE_INPROGRESS = 1
 STITCHJOB_STATE_COMPLETED = 2
@@ -32,6 +34,7 @@ class StitchTask(object):
         self.dst_format = "" # flv, mp4
         self.map_filename = "" # map.offline.4k.map
         self.map_file_id = "" # md5 genearted by md5sum cmd
+        self.create_time = time.time()
         self.start_time = ""
         self.end_time = ""
         self.worker_id = "" # ip of worker
@@ -55,6 +58,7 @@ class StitchJob(object):
         self.map_file_id = "" # md5 genearted by md5sum cmd
         self.state = STITCHJOB_STATE_READY 
         self.result = STITCHJOB_RESULT_FAILURE
+        self.create_time = time.time()
 
 
 class StitchWorker(object):

@@ -11,3 +11,4 @@ if __name__ == "__main__":
 
     the_master.start()
     app.run(debug=True);
+    the_master.stop()
