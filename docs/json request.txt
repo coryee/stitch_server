@@ -1,0 +1,31 @@
+* register worker
+request:
+{
+    type: request
+    worker_id: id
+    worker_ip: ip
+    worker_port: port
+}
+
+response:
+{
+    type:response
+    error_code:0    
+}
+
+
+
+
+* heartbeat from worker
+request:
+{
+    type:reqeust
+    worker_id: id
+    state: idle/inprogress
+}
+
+response:
+{
+    type:response
+    error_code:0    
+}
