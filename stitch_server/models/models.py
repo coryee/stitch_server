@@ -1,4 +1,9 @@
+import __init__
 import time
+from sqlalchemy import Column, String, Integer, Float, create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+import constants
 
 STITCHJOB_STATE_READY = 0
 STITCHJOB_STATE_INPROGRESS = 1
@@ -18,13 +23,30 @@ STITCHTASK_RESULT_FAILURE = -1
 STITCHWORKER_STATE_IDLE = 0
 STITCHWORKER_STATE_INPROGRESS = 1
 
+Base = declarative_base()
+ 
 
+class StitchTask(Base):
+    __tablename__ = "stitch_task"
 
-class StitchTask(object):
-    """docstring for StitchTask"""
+    # table
+    id = Column(String(constants.SS_MAX_ID_LEN), primary_key = True)
+    src_filename = Column(String(constants.SS_MAX_PATH))
+    src_file_id = Column(String(constants.SS_MAX_ID_LEN))
+    dst_dir = Column(String(constants.SS_MAX_PATH))
+    dst_format = Column(String(constants.SS_MAX_MEDIA_FORMAT))
+    map_filename = Column(String(constants.SS_MAX_PATH))
+    map_file_id = Column(String(constants.SS_MAX_ID_LEN))
+    create_time = Column(Integer)
+    start_time = Column(Integer)
+    end_time = Column(Integer)
+    worker_id = Column(String(constants.SS_MAX_ID_LEN))
+    progress = Column(Float)
+    state = Column(Integer)
+    result = Column(Integer)
+
     def __init__(self):
         self.id = "" # must be equal to self.src_file_id
-        self.job_id = ""
         self.src_filename = "" # record-3-13.bin
         '''src_file_id: md5 genearted by record_file_utility,
             the value is unique
@@ -43,8 +65,22 @@ class StitchTask(object):
         self.result = STITCHTASK_RESULT_FAILURE
 
 
-class StitchJob(object):
-    """docstring for StitchTask"""
+class StitchJob(Base):
+    __tablename__ = "stitch_job"
+
+    # table
+    id = Column(String(constants.SS_MAX_ID_LEN), primary_key = True)
+    src_filename = Column(String(constants.SS_MAX_PATH))
+    src_file_id = Column(String(constants.SS_MAX_ID_LEN))
+    dst_dir = Column(String(constants.SS_MAX_PATH))
+    dst_format = Column(String(constants.SS_MAX_MEDIA_FORMAT))
+    map_filename = Column(String(constants.SS_MAX_PATH))
+    map_file_id = Column(String(constants.SS_MAX_ID_LEN))
+    segments = Column(String(constants.SS_MAX_PATH))
+    state = Column(Integer)
+    result = Column(Integer)
+    create_time = Column(Integer)
+
     def __init__(self):
         self.id = "" # must be equal to self.src_file_id
         self.src_filename = "" # record.bin
@@ -56,6 +92,7 @@ class StitchJob(object):
         self.dst_format = "" # flv, mp4
         self.map_filename = "" # map.offline.4k.map
         self.map_file_id = "" # md5 genearted by md5sum cmd
+        self.segments = "" # 1-5:20-35 ...
         self.state = STITCHJOB_STATE_READY 
         self.result = STITCHJOB_RESULT_FAILURE
         self.create_time = time.time()

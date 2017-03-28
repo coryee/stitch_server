@@ -2,9 +2,21 @@ import __init__
 from collections import defaultdict
 import time
 import threading
-from models import models
+from models import models, sqlutil
+#from models import DBJobOperator
 import ssutils
 import constants
+
+
+class SSJobManager(object):
+    def __init__(self):
+        self._job = None
+        self._segments = {} # {job_id:[segments]}
+        self._tasks = [] # {task_id: task}
+        self._segment_tasks = defaultdict() # {segment_id: [task_id, task_id]}
+        self._assigned_tasks = defaultdict(set) # {worker_id: [task_id, task_id]}
+        self._thread = None
+
 
 
 class SSMaster(object):
@@ -102,7 +114,13 @@ class SSMaster(object):
     ''' handle client request '''
     def add_job(self, job):
         print "add_job, job_id: %s" % (job.id) 
-        self._jobs.append(job)
+        try:
+            sqlutil.DBJobOperator.add(job)        
+            self._jobs.append(job)
+        except Exception as e:
+            # TODO: maka a response
+            print e.message
+            pass
         return
 
     def remove_job(self, job_id):
