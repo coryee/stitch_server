@@ -2,20 +2,13 @@ import __init__
 from collections import defaultdict
 import time
 import threading
+import pprint
+import copy
 from models import models, sqlutil
 #from models import DBJobOperator
 import ssutils
 import constants
-
-
-class SSJobManager(object):
-    def __init__(self):
-        self._job = None
-        self._segments = {} # {job_id:[segments]}
-        self._tasks = [] # {task_id: task}
-        self._segment_tasks = defaultdict() # {segment_id: [task_id, task_id]}
-        self._assigned_tasks = defaultdict(set) # {worker_id: [task_id, task_id]}
-        self._thread = None
+from job_manager import JobManager
 
 
 
@@ -25,6 +18,8 @@ class SSMaster(object):
         super(SSMaster, self).__init__()
         self._keep_runing = True
         self._workers = [] # [worker...],
+        self._job_managers = []
+
         self._jobs = [] # [job...]
         self._tasks = [] # {task_id: task}
         self._job_tasks = defaultdict() # {job_id: [task_id, task_id]}
@@ -47,9 +42,11 @@ class SSMaster(object):
         print "unregister worker, worker_id = %s" % worker.id
         assigned_tasks = self._assigned_tasks[worker.id]
         for task in assigned_tasks:
-            task.state = models.STITCHTASK_STATE_READY
-            task.result = models.STITCHTASK_RESULT_FAILURE
-        worker.alive = False
+            for job_manager in self._job_managers:
+                if job_manager.if_contain_task(task.id):
+                    job_manager.set_task_state(task.id, models.STITCH_STATE_READY, models.STITCH_RESULT_OK)
+                    break
+        self._workers.remove(worker)
         return
 
 
@@ -59,11 +56,6 @@ class SSMaster(object):
             return
         worker.heartbeat_time = time.time()
         worker.state = state
-        return
-
-
-    def cancel_task(self, worker, task_id):
-
         return
 
     ''' update the basic information about worker. 
@@ -103,89 +95,80 @@ class SSMaster(object):
         return  None
 
 
-    def get_job(self, job_id):
-        for job in self._jobs:
-            if job.id == job_id:
-                return job
+    def get_job_manager(self, job_id):
+        for job_manager in self._job_managers:
+            if job_manager.job.id == job_id:
+                return job_manager
         return None
 
+
+    def get_job_manager_by_task(self, task_id):
+        for job_manager in self._job_managers:
+            if _job_managers.if_contain_task(task_id):
+                return job_manager
+        return None
 
 
     ''' handle client request '''
-    def add_job(self, job):
+    # return job_id if succeed, or None
+    def add_job(self, job_dict):
+        job = models.StitchJob()
+        # TODO: job.id is the same as file_id
+        job.id = str(time.time())
+        job.src_filename = str(job_dict.get("src_filename", ""))
+        job.src_file_id = "" 
+        job.dst_dir = str(job_dict.get("dst_dir", ""))
+        job.dst_format = str(job_dict.get("dst_format", "flv"))
+        job.segments = str(job_dict.get("segments", ""))
+        job.map_filename = str(job_dict.get("map_filename", ""))
+        job.map_file_id = ""
+
+        print "src_filename = %s, dst_dir = %s" % (job.src_filename, job.dst_dir)
+        if job.src_filename == "" or job.dst_dir == "":
+            return None
+
         print "add_job, job_id: %s" % (job.id) 
         try:
-            sqlutil.DBJobOperator.add(job)        
-            self._jobs.append(job)
+            sqlutil.DBJobOperator.add(job)
+            job_manager = JobManager(job)
+            self._job_managers.append(job_manager)
+            return job.id
         except Exception as e:
             # TODO: maka a response
             print e.message
-            pass
-        return
-
-    def remove_job(self, job_id):
-        job = self.get_job(job_id)
-        if not job:
-            return
-            
-        print "remove_job, job_id: %s" % (job.id)
-        # remove all the associated task
-        task_ids = self._job_tasks[job.id]
-        for tid in task_ids:
-            worker = self.get_worker_by_task(tid)
-            # notify worker
-            self.cancel_task(worker, tid)
-            self.remove_task(tid)
-            self._assigned_tasks[worker.id].remove(tid)
-
-        self._job_tasks.pop(job.id, None)        
-        self._jobs.remove(job)
-        return
-
-    def set_job_state(self, job_id, state, result):
-        print "set_job_state"
-        job = self.get_job(job_id)
-        job.state = state
-        job.result = result
-        return 
-
-    def get_job_state(self, job_id):
-        print "get_job_state"
-        job = self.get_job(job_id)
-        return job.state
-
-    def split_job_into_tasks(self, job):
-        print "split_job_into_tasks"
-        id = time.time()
-        tasks = []
-        for i in range(2):
-            id += i
-            task = models.StitchTask()
-            task.id = id
-            task.src_filename = task.id
-            task.src_file_id = task.id 
-            task.state = models.STITCHTASK_STATE_READY
-            tasks.append(task)
-        return tasks
-
-    ''' handle worker request '''
-    def get_task(self, task_id):
-        for task in self._tasks:
-            if task.id == task_id:
-                return task
         return None
 
 
-    def add_task(self, task):
-        print "add_task, state: %d" %(task.state)
-        self._tasks.append(task)
+    def remove_job(self, job_id):
+        job_manager = self.get_job_manager(job_id)
+        if not job_manager:
+            return
+
+        # remove all the associated task
+        task_ids = job_manager.get_task_ids()
+        for tid in task_ids:
+            worker = self.get_worker_by_task(tid)
+            self.cancel_task(worker, tid)
+        job_manager.cancel()
+        self._job_managers.remove(job_manager)
         return
 
-    def remove_task(self, task_id):
-        print "remove_task"
-        task = self.get_task(task_id)
-        if task:
-            self.remove(task)
+    # def set_job_state(self, job_id, state, result):
+    #     print "set_job_state"
+    #     job = self.get_job_manager(job_id)
+    #     job.state = state
+    #     job.result = result
+    #     return 
+
+    def get_job_state(self, job_id):
+        print "get_job_state"
+        job = self.get_job_manager(job_id)
+        return job.state
+
+
+    def cancel_task(self, worker, task_id):
+        # TODO: notify worker
+        self._assigned_tasks[worker.id].remove(task_id)
         return
 
     ''' update state of stask.
@@ -194,36 +177,18 @@ class SSMaster(object):
         }
     '''
     def set_task_state(self, task_id, task_state, task_result):
-        task = self.get_task(task_id)
-        task.state = task_state
-        task.result = task_result
-
-        job_id = task.job_id
-        job = self.get_job(job_id)
-        task_ids = self._job_tasks[job_id]
-        all_task_completed = True
-        job_result = STITCHTASK_RESULT_OK
-        for tid in task_ids:
-            t = self.get_task(task_id)
-            if t.state != models.STITCHTASK_STATE_COMPLETED:
-                all_task_completed = False
-                break
-            if t.result != STITCHTASK_RESULT_OK:
-                job_result = models.STITCHJOB_RESULT_FAILURE
-
-        if all_task_completed:
-            self.set_job_state(job_id, models.STITCHTASK_STATE_COMPLETED, job_result)
-
-        return
+        job_manager = self.get_job_manager_by_task(task_id)
+        if not job_manager:
+            return False
+        return job_manager.set_task_state(task_id, task_state, task_result)
 
     '''
     assign task to worker
     '''
     def assign_task(self, task, worker):
-        task.state = models.STITCHTASK_STATE_ASSIGNED
         self._assigned_tasks[worker.id].add(task)
         print "assign_task, task_id: %s, task_state: %d" %(task.id, task.state)
-        return
+        return True
 
     def start(self):
         self._thread = threading.Thread(target=SSMaster.serve, args=(self,))
@@ -236,22 +201,22 @@ class SSMaster(object):
     def serve(self):
         last_checking_time = time.time()
         while self._keep_runing:
-            for job in self._jobs:
-                if job.state == models.STITCHJOB_STATE_READY:
-                    tasks = self.split_job_into_tasks(job)
-                    for task in tasks:
-                        self.add_task(task)
-                    job.state = models.STITCHJOB_STATE_INPROGRESS;
-
             num_assigned_tasks = 0
-            for task in self._tasks:
-                if task.state == models.STITCHTASK_STATE_READY:
-                    worker = self.get_idle_worker()
-                    if worker:
-                        self.assign_task(task, worker)
-                        num_assigned_tasks += 1
-                    else:
-                        break
+
+            worker = self.get_idle_worker()
+            if worker:
+                for job_manager in self._job_managers:
+                    if job_manager.get_state() == models.STITCH_STATE_UNKNOWN:
+                        job_manager.prepare(len(self._workers))
+                    while True:
+                        task = job_manager.get_new_task()
+                        if not task:
+                            break
+                        if task.state == models.STITCH_STATE_READY:
+                            if self.assign_task(task, worker):
+                                job_manager.set_task_state(task.id, models.STITCH_STATE_INPROGRESS, models.STITCH_RESULT_OK)
+                                num_assigned_tasks += 1
+
 
             cur_time = time.time()
             if cur_time - last_checking_time > constants.SS_AVAILABILITY_CHECKING_INTERVAL_TIME:

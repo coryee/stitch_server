@@ -17,6 +17,7 @@ class DBOperator(object):
         print "add obj into db"
         DBSession.add(obj)
         DBSession.commit()
+        print "add obj into db end"
 
     @classmethod
     def delete(clazz, obj):
@@ -31,10 +32,11 @@ class DBOperator(object):
 class DBJobOperator(DBOperator):
     @classmethod
     def update(clazz, obj):
+        print "DBJobOperator update"
         DBSession.query(obj)
 
 
-class DBTaskOperator(DBOperator):
+class DBSegmentOperator(DBOperator):
     @classmethod
     def update(clazz, obj):
         DBSession.query(obj)

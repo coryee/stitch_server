@@ -1,44 +1,48 @@
 import __init__
 import time
+import pprint
 import json
 from flask import (jsonify, request)
 from stitch_server import (app, the_master)
 
 from models import models
 from utils import httputil
+from request_util import validate_json
 import errors
 
-
 @app.route("/master/get_job", methods=["POST"])
+@validate_json
 def master_get_job():
-    try:
-        payload = request.get_data()
-        r = json.loads(payload)
-        job_id = r.get("job_id", "xxxx")
-        job = the_master.get_job(job_id)
-        response = jsonify({"master":"get_job"})
-    except Exception as e:
-        print e.message
-        response = httputil.http_creat_reponse(errors.SS_EC_INVALID_JSON_FORMAT)
+    payload = request.get_data()
+    r = json.loads(payload)
+    job_id = r.get("job_id", "xxxx")
+    job = the_master.get_job(job_id)
+    response = jsonify({"master":"get_job"})
 
     return response
 
 
 @app.route("/master/get_jobs", methods=["POST"])
-def master_get_job_list():
+@validate_json
+def master_get_jobs():
+    print "get_jobs"
     return jsonify({"master":"get_jobs"})
 
-@app.route("/master/add_job", methods=["POST"])
-def master_add_job():
-    job = models.StitchJob()
-    job.id = time.time()
-    job.src_filename = job.id
-    job.src_file_id = "" 
-    job.dst_dir = ""
-    job.dst_format = "flv"
-    job.map_filename = "" # map.offline.4k.map
-    job.map_file_id = "" # md5 genearted by md5sum cmd
-    job.state = models.STITCHJOB_STATE_READY
-    the_master.add_job(job)
 
-    return jsonify({"master":"add_job"})
+@app.route("/master/add_job", methods=["POST"])
+@validate_json
+def master_add_job():
+    data = request.get_data()
+    payload = json.loads(data)
+    # search db to find out the corresponding offline.map
+    job_dict = payload.get("job", {})
+    job_id = None
+    print "filename = %s" % job_dict.get("src_filename", "")
+    job_id = the_master.add_job(job_dict)
+    
+    if job_id:
+        response = httputil.http_creat_reponse(errors.SS_EC_OK, {"job_id":job_id})
+    else:
+        response = httputil.http_creat_reponse(errors.SS_EC_INVALID_REQUEST)
+
+    return response

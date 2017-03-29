@@ -1,24 +1,17 @@
 import __init__
 import time
-from sqlalchemy import Column, String, Integer, Float, create_engine
+from sqlalchemy import Column, String, Integer, Float, ForeignKey, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import constants
 
-STITCHJOB_STATE_READY = 0
-STITCHJOB_STATE_INPROGRESS = 1
-STITCHJOB_STATE_COMPLETED = 2
+STITCH_STATE_UNKNOWN = -1
+STITCH_STATE_READY = 0
+STITCH_STATE_INPROGRESS = 1
+STITCH_STATE_COMPLETED = 2
 
-STITCHJOB_RESULT_OK = 0
-STITCHJOB_RESULT_FAILURE = 2
-
-
-STITCHTASK_STATE_READY = 0
-STITCHTASK_STATE_ASSIGNED = 1
-STITCHTASK_STATE_COMPLETED = 2
-
-STITCHTASK_RESULT_OK = 0
-STITCHTASK_RESULT_FAILURE = -1
+STITCH_RESULT_OK = 0
+STITCH_RESULT_FAILURE = -1
 
 STITCHWORKER_STATE_IDLE = 0
 STITCHWORKER_STATE_INPROGRESS = 1
@@ -61,8 +54,8 @@ class StitchTask(Base):
         self.end_time = ""
         self.worker_id = "" # ip of worker
         self.progress = 0 # used by worker
-        self.state = STITCHTASK_STATE_READY
-        self.result = STITCHTASK_RESULT_FAILURE
+        self.state = STITCH_STATE_READY
+        self.result = STITCH_RESULT_OK
 
 
 class StitchJob(Base):
@@ -93,9 +86,38 @@ class StitchJob(Base):
         self.map_filename = "" # map.offline.4k.map
         self.map_file_id = "" # md5 genearted by md5sum cmd
         self.segments = "" # 1-5:20-35 ...
-        self.state = STITCHJOB_STATE_READY 
-        self.result = STITCHJOB_RESULT_FAILURE
+        self.state = STITCH_STATE_UNKNOWN 
+        self.result = STITCH_RESULT_OK
         self.create_time = time.time()
+
+
+class StitchSegment(Base):
+    __tablename__ = constants.SS_DB_SEGMENT_TABLE_NAME
+
+    # table
+    id = Column(String(constants.SS_MAX_ID_LEN), primary_key = True)
+    job_id = Column(String(constants.SS_MAX_ID_LEN), ForeignKey("stitch_job.id"))
+    src_filename = Column(String(constants.SS_MAX_PATH))
+    src_file_id = Column(String(constants.SS_MAX_ID_LEN))
+    create_time = Column(Integer)
+    from_time = Column(Integer)
+    to_time = Column(Integer)
+    state = Column(Integer)
+    result = Column(Integer)
+
+    def __init__(self):
+        self.id = ""
+        self.job_id = ""
+        self.src_filename = "" # record.bin
+        '''src_file_id: md5 genearted by record_file_utility,
+            the value is unique
+        '''
+        self.src_file_id = "" 
+        self.create_time = time.time()
+        self.from_time = 0
+        self.to_time = 0
+        self.state = STITCH_STATE_UNKNOWN 
+        self.result = STITCH_RESULT_OK
 
 
 class StitchWorker(object):

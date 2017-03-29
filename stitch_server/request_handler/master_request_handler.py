@@ -6,7 +6,7 @@ from flask import jsonify
 from stitch_server import app, the_master
 from models import models
 
-@app.route("/master/register", methods=["GET"])
+@app.route("/master/register", methods=["POST"])
 def master_handle_register():
     worker = models.StitchWorker()
     worker.id = time.time()
@@ -18,7 +18,7 @@ def master_handle_register():
 
     return jsonify({"master":"/worker/register"})
 
-@app.route("/master/unregister", methods=["GET"])
+@app.route("/master/unregister", methods=["POST"])
 def master_handle_unregister():
     worker_id = ""
     the_master.unregister_worker(worker_id)

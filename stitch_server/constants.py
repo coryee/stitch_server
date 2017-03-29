@@ -7,5 +7,5 @@ SS_DB_NAME = "stitch_server"
 SS_DB_USER = "root"
 SS_DB_PASSWD = "coryee"
 
-
 SS_DB_JOB_TABLE_NAME = "stitch_job"
+SS_DB_SEGMENT_TABLE_NAME = "stitch_segment"
