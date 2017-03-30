@@ -141,7 +141,7 @@ class SSMaster(object):
     def remove_job(self, job_id):
         job_manager = self.get_job_manager(job_id)
         if not job_manager:
-            return
+            return False
 
         # remove all the associated task
         task_ids = job_manager.get_task_ids()
@@ -150,7 +150,7 @@ class SSMaster(object):
             self.cancel_task(worker, tid)
         job_manager.cancel()
         self._job_managers.remove(job_manager)
-        return
+        return True
 
 
     def get_job_state(self, job_id):

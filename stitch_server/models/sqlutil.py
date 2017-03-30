@@ -40,6 +40,8 @@ class DBOperator(object):
         DBSession.commit()
 
     def delete_by_id(self, id):
+        query = DBSession.query(self.db_oject()).filter_by(id=id).delete()
+        DBSession.commit()
         return
 
 

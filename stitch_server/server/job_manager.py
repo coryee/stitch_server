@@ -91,6 +91,9 @@ class JobManager(object):
 
 
     def cancel(self):
+        for seg_manager in self._segment_managers:
+            segment_db_operator.delete_by_id(seg_manager.segment.id)
+        self._segment_managers = []
         return
 
 

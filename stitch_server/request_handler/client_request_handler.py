@@ -21,7 +21,6 @@ def master_get_job():
     job_id = str(payload.get("job_id", ""))
     result = {}
     try:
-        pprint(job_id)
         job = job_db_operator.query_by_id(job_id)
         if job:
             result = request_util.job_to_dict(job)
@@ -87,3 +86,18 @@ def master_add_job():
         response = httputil.http_creat_reponse(errors.SS_EC_INVALID_REQUEST)
 
     return response
+
+
+@app.route("/master/remove_job", methods=["POST"])
+@validate_json
+def master_remove_job():
+    data = request.get_data()
+    payload = json.loads(data)
+    job_id = str(payload.get("job_id", ""))
+
+    err_code = errors.SS_EC_OK
+    result = the_master.remove_job(job_id)
+    if request is False:
+        err_code = errors.SS_EC_FAILURE
+    
+    return httputil.http_creat_reponse(err_code)
