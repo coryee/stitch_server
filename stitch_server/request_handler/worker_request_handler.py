@@ -4,6 +4,8 @@ from flask import jsonify
 from stitch_server import (app, the_worker)
 from models import models
 from server import ssutils
+from request_util import validate_json
+import errors
 
 @app.route("/worker/add_task", methods=["POST"])
 def worker_add_task():

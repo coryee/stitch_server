@@ -27,16 +27,18 @@ class SSMaster(object):
 
 
     def register_worker(self, worker):
-        print "register worker, worker_id = %s" % worker.id
         worker.alive = True
+        worker.id = worker.ip + str(worker.port)
+        worker.heartbeat_time = time.time()
+        print "register worker, worker_id = %s" % worker.id
         self._workers.append(worker)
-        return
+        return True
 
 
     def unregister_worker(self, worker_id):
         worker = self.get_worker(worker_id)
         if not worker:
-            return
+            return False
 
         print "unregister worker, worker_id = %s" % worker.id
         assigned_tasks = self._assigned_tasks[worker.id]
@@ -46,16 +48,16 @@ class SSMaster(object):
                     job_manager.set_task_state(task.id, models.STITCH_STATE_READY, models.STITCH_RESULT_OK)
                     break
         self._workers.remove(worker)
-        return
+        return True
 
 
     def worker_heartbeat(self, worker_id, state):
         worker = self.get_worker(worker_id)
         if worker is None:
-            return
+            return False
         worker.heartbeat_time = time.time()
         worker.state = state
-        return
+        return True
 
     ''' update the basic information about worker. 
         e.g. online/offline, idle/in progress
