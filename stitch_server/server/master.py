@@ -4,12 +4,11 @@ import time
 import threading
 import pprint
 import copy
-from models import models, sqlutil
-#from models import DBJobOperator
+from models import models
+from models.sqlutil import job_db_operator
 import ssutils
 import constants
 from job_manager import JobManager
-
 
 
 class SSMaster(object):
@@ -129,7 +128,7 @@ class SSMaster(object):
 
         print "add_job, job_id: %s" % (job.id) 
         try:
-            sqlutil.DBJobOperator.add(job)
+            job_db_operator.add(job)
             job_manager = JobManager(job)
             self._job_managers.append(job_manager)
             return job.id
@@ -153,17 +152,14 @@ class SSMaster(object):
         self._job_managers.remove(job_manager)
         return
 
-    # def set_job_state(self, job_id, state, result):
-    #     print "set_job_state"
-    #     job = self.get_job_manager(job_id)
-    #     job.state = state
-    #     job.result = result
-    #     return 
 
     def get_job_state(self, job_id):
         print "get_job_state"
-        job = self.get_job_manager(job_id)
-        return job.state
+        job_manager = self.get_job_manager(job_id)
+        if not job_manager:
+            return (None, None)
+        job = job_manager.job
+        return (job.result, job.state)
 
 
     def cancel_task(self, worker, task_id):
@@ -206,7 +202,7 @@ class SSMaster(object):
             worker = self.get_idle_worker()
             if worker:
                 for job_manager in self._job_managers:
-                    if job_manager.get_state() == models.STITCH_STATE_UNKNOWN:
+                    if job_manager.get_state() == models.STITCH_STATE_INIT:
                         job_manager.prepare(len(self._workers))
                     while True:
                         task = job_manager.get_new_task()

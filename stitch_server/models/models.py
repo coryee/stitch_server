@@ -5,10 +5,10 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import constants
 
-STITCH_STATE_UNKNOWN = -1
-STITCH_STATE_READY = 0
-STITCH_STATE_INPROGRESS = 1
-STITCH_STATE_COMPLETED = 2
+STITCH_STATE_INIT = 0
+STITCH_STATE_READY = 1
+STITCH_STATE_INPROGRESS = 2
+STITCH_STATE_COMPLETED = 3
 
 STITCH_RESULT_OK = 0
 STITCH_RESULT_FAILURE = -1
@@ -86,9 +86,21 @@ class StitchJob(Base):
         self.map_filename = "" # map.offline.4k.map
         self.map_file_id = "" # md5 genearted by md5sum cmd
         self.segments = "" # 1-5:20-35 ...
-        self.state = STITCH_STATE_UNKNOWN 
+        self.state = STITCH_STATE_INIT 
         self.result = STITCH_RESULT_OK
         self.create_time = time.time()
+
+    def to_dict(self):
+        result = {}
+        result["id"] = self.id
+        result["src_filename"] = self.src_filename
+        result["dst_dir"] = self.dst_dir
+        result["dst_format"] = self.dst_format
+        result["segments"] = self.segments
+        result["state"] = self.state
+        result["result"] = self.result
+        result["create_time"] = self.create_time
+        return result
 
 
 class StitchSegment(Base):
@@ -116,7 +128,7 @@ class StitchSegment(Base):
         self.create_time = time.time()
         self.from_time = 0
         self.to_time = 0
-        self.state = STITCH_STATE_UNKNOWN 
+        self.state = STITCH_STATE_INIT 
         self.result = STITCH_RESULT_OK
 
 

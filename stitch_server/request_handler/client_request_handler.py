@@ -1,32 +1,73 @@
 import __init__
 import time
-import pprint
+from pprint import pprint
 import json
 from flask import (jsonify, request)
 from stitch_server import (app, the_master)
 
 from models import models
 from utils import httputil
+import request_util
 from request_util import validate_json
+from models.sqlutil import job_db_operator
 import errors
 
 @app.route("/master/get_job", methods=["POST"])
 @validate_json
 def master_get_job():
-    payload = request.get_data()
-    r = json.loads(payload)
-    job_id = r.get("job_id", "xxxx")
-    job = the_master.get_job(job_id)
-    response = jsonify({"master":"get_job"})
+    data = request.get_data()
+    payload = json.loads(data)
+    err_code = errors.SS_EC_FAILURE
+    job_id = str(payload.get("job_id", ""))
+    result = {}
+    try:
+        pprint(job_id)
+        job = job_db_operator.query_by_id(job_id)
+        if job:
+            result = request_util.job_to_dict(job)
+        else:
+            result["job"] = {}
+        err_code = errors.SS_EC_OK
+    except Exception as e:
+        print e.message
+    
+    return httputil.http_creat_reponse(err_code, result)
 
-    return response
+
+@app.route("/master/get_job_state", methods=["POST"])
+@validate_json
+def master_get_job_state():
+    data = request.get_data()
+    payload = json.loads(data)
+    job_id = str(payload.get("job_id", ""))
+
+    err_code = errors.SS_EC_OK
+    response = {}
+    result, state = the_master.get_job_state(job_id)
+    if result is None or state is None:
+        err_code = errors.SS_EC_INVALID_VALUE
+    else:
+        response["state"] = state 
+        response["result"] = result
+    
+    return httputil.http_creat_reponse(err_code, response)
+
 
 
 @app.route("/master/get_jobs", methods=["POST"])
 @validate_json
 def master_get_jobs():
-    print "get_jobs"
-    return jsonify({"master":"get_jobs"})
+    jobs_dict = {}
+    try:
+        jobs = job_db_operator.query("create_time", 0, 1)
+        jobs_dict = request_util.jobs_to_dict(jobs)
+        err_code = errors.SS_EC_OK
+    except Exception as e:
+        print e.message
+        err_code = errors.SS_EC_FAILURE
+    
+    pprint(jobs_dict)
+    return httputil.http_creat_reponse(err_code, jobs_dict)
 
 
 @app.route("/master/add_job", methods=["POST"])

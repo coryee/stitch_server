@@ -4,6 +4,7 @@ import time
 from pprint import pprint
 import threading
 from models import models, sqlutil
+from models.sqlutil import segment_db_operator
 from segment_manager import SegmentManager
 import ssutils
 import constants
@@ -79,7 +80,7 @@ class JobManager(object):
             segment.state = models.STITCH_STATE_READY 
             segment.result = models.STITCH_RESULT_OK
 
-            sqlutil.DBSegmentOperator.add(segment)
+            segment_db_operator.add(segment)
             segment_manager = SegmentManager(segment, self.job.id)
             segment_manager.split(num_workers)
             self.add_segment_manager(segment_manager)
