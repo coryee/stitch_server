@@ -1,31 +1,192 @@
-* register worker
+******************** client to master **********************
+* get state of specified job
+api:/master/add_job?token=xxxx
 request:
 {
-    type: request
-    worker_id: id
-    worker_ip: ip
-    worker_port: port
+    type:0,  # 0: request, 1: response
+    job: {
+        src_filename = "record.bin"
+        dst_dir = "/tmp/"
+        dst_format = "flv"
+        segments:1-5:2-10
+    }
 }
 
 response:
 {
-    type:response
-    error_code:0    
+    type:1,  
+    err_code:0, # 0: ok, < 0: failure
+    err_msg:"ok"
 }
 
+example:
+{
+    "type":0,
+    "job": {
+        "src_filename": "record.bin",
+        "dst_dir": "/tmp/",
+        "dst_format": "flv",
+        "segments":"1-5:2-10"
+    }
+}
+
+
+
+* get state of specified job
+api:/master/get_job?token=xxxx
+request:
+{
+    type:0,  # 0: request, 1: response
+    job_id:xxx
+}
+response:
+{
+    type:1,  
+    err_code:0, # 0: ok, < 0: failure
+    err_msg:"ok"
+    job: {
+        id:
+        state:
+        srt_path:
+        dst_path:
+        progress:
+    }
+}
+examples:
+{
+    "type":0,
+    "job_id":"1490776760.13"
+}
+
+
+
+
+* get jobs
+api:/master/get_jobs?token=xxxx
+request:
+{
+    type:0, # 0: request, 1: response
+    start_index: 0,
+    limit: 10
+    # sortby:time
+}
+
+request:
+{
+    type:1, # 0: request, 1: response
+    err_code: 0,
+    err_msg: "ok"
+    start_index: 0,
+    num_jobs: 10
+    jobs:[
+        {
+            id:
+            state:
+            srt_path:
+            dst_path:
+            progress:
+        }
+        ......
+    ]
+
+}
+
+
+******************** worker to master **********************
+* register worker
+request:
+{
+    type: 0
+    ip: ip
+    port: port
+    state:0 # 0:idle ; 1: busy
+    
+}
+
+response:
+{
+    type:1
+    error_code:0 
+    worker_id: xxx
+}
+
+example:
+{
+    "type":0,
+    "ip":"0.0.0.0",
+    "port":20001,
+    "state":0
+}
 
 
 
 * heartbeat from worker
 request:
 {
-    type:reqeust
+    type:0
     worker_id: id
-    state: idle/inprogress
+    worker_state: 0
 }
 
 response:
 {
-    type:response
+    type:1
     error_code:0    
+}
+
+
+
+
+******************** master to worker **********************
+* add task
+request:
+{
+    type: 0
+    task:{
+        id = ""
+        src_filename = ""
+        src_file_id = "" 
+        dst_dir = ""
+        dst_format = ""
+        map_filename = ""
+        map_file_id = ""
+    }
+}
+
+response:
+{
+    type:1
+    error_code:0 
+}
+
+example:
+{
+    "type":0,
+    ...
+}
+
+
+* get task information
+request:
+{
+    type: 0
+    task_id: ""
+}
+
+response:
+{
+    type:1
+    error_code:0 
+    task: {
+        id = "",
+        state = 0,
+        result = 0
+        progress = 0,
+    }
+}
+
+example:
+{
+    "type":0,
+    ...
 }

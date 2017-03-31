@@ -25,7 +25,6 @@ def validate_json(func):
     return decorator
 
 
-
 def jobs_to_dict(jobs):
     result = {}
     dict_list = []

@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 
 import time
-from flask import jsonify
+from flask import (jsonify, request)
 from stitch_server import app, the_master
 from request_util import validate_json
 from models import models

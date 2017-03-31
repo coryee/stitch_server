@@ -4,8 +4,9 @@ import json
 from errors import ss_err_msgs
 
 
-def http_send_post(ip, port, data, timeout = 1):
-    host = "%s:%d" % (ip, port)
+def http_send_post(ip, port, api, data, timeout = 1):
+    host = "http://%s:%d%s" % (ip, port, api)
+    print "host: %s" % host
     headers = {'Content-type': 'application/json'}
     r = None
     result = -1
@@ -14,6 +15,7 @@ def http_send_post(ip, port, data, timeout = 1):
         if response.status_code == requests.codes.ok:
             result = 0
     except requests.exceptions.RequestException as e:
+        response = None
         pass
     
     return (result, response)

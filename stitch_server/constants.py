@@ -3,9 +3,26 @@ SS_MAX_PATH = 256
 SS_MAX_ID_LEN = 64
 SS_MAX_MEDIA_FORMAT = 16
 
+SS_HEARTBEAT_INTERVAL_TIME = 3 # in seconds
+SS_AVAILABILITY_CHECKING_INTERVAL_TIME = 10 # in seconds
+SS_WORKER_TASK_STATE_UPDATING_INTERVEL_TIME = 1
+
+SS_ID_SEPERATOR = "---"
+SS_MIN_TASK_DURATION = 60 # in seconds
+
+
 SS_DB_NAME = "stitch_server"
 SS_DB_USER = "root"
 SS_DB_PASSWD = "coryee"
 
 SS_DB_JOB_TABLE_NAME = "stitch_job"
 SS_DB_SEGMENT_TABLE_NAME = "stitch_segment"
+
+# 0: master, 1: worker
+STITCH_SERVER_TYPE_MASTER = 0
+STITCH_SERVER_TYPE_WORKER = 1
+
+
+MASTER_API_REGISTER = "/master/register"
+MASTER_API_UNREGISTER = "/master/unregister"
+MASTER_API_HEARTBEAT = "/master/heartbeat"
